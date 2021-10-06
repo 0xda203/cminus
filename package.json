@@ -1,0 +1,17 @@
+{
+	"name": "cminus",
+	"version": "1.0.0",
+	"description": "Compiler for C-",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"flex-js": "^1.0.5"
+	},
+	"devDependencies": {
+		"prettier": "^2.4.1"
+	}
+}
