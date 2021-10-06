@@ -8,7 +8,7 @@ Para executar o programa em sua máquina, clone o repositório em sua máquina e
 
 ```bash
   git clone git@github.com/0xfe2f/cminus.git
-  cd cminus
+  cd cminus-main
   npm install
 ```
 
