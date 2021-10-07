@@ -1,4 +1,3 @@
-const { ENOENT } = require('constants')
 const fs = require('fs')
 const lexicalize = require('./components/Lexer')
 
