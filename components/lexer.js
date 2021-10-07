@@ -16,27 +16,28 @@ lexer.addRule(/(else|if|int|return|void|while)/, lexeme => ({
 	tokenAttribute: ''
 })) // Palavras-chave
 
-lexer.addRule(/={3,}/, lexeme => ({ lexeme: lexeme.text, tokenName: 'ERROR', tokenAttribute: noLines })) // ===
+lexer.addRule(/={3,}/, lexeme => ({ lexeme: lexeme.text, tokenName: 'ERROR', tokenAttribute: '', tokenLine: noLines  })) // ===
 
-lexer.addRule(/[0-9]+/, lexeme => ({ lexeme: lexeme.text, tokenName: 'NUM', tokenAttribute: '' })) // Número
-lexer.addRule(/[a-zA-Z]+[0-9]*/, lexeme => ({ lexeme: lexeme.text, tokenName: 'ID', tokenAttribute: '' })) // ID
+lexer.addRule(/[0-9]+/, lexeme => ({ lexeme: lexeme.text, tokenName: 'NUM', tokenAttribute: '', tokenLine: noLines  })) // Número
+lexer.addRule(/[a-zA-Z]+[0-9]*/, lexeme => ({ lexeme: lexeme.text, tokenName: 'ID', tokenAttribute: '', tokenLine: noLines  })) // ID
 
-lexer.addRule(/>=/, lexeme => ({ lexeme: lexeme.text, tokenName: '>=', tokenAttribute: 'GE' })) // >=
-lexer.addRule(/<=/, lexeme => ({ lexeme: lexeme.text, tokenName: '<=', tokenAttribute: 'LE' })) // <=
-lexer.addRule(/!=/, lexeme => ({ lexeme: lexeme.text, tokenName: '<>', tokenAttribute: 'NE' })) // <>
-lexer.addRule(/</, lexeme => ({ lexeme: lexeme.text, tokenName: '<', tokenAttribute: 'LT' })) // <
-lexer.addRule(/>/, lexeme => ({ lexeme: lexeme.text, tokenName: '>', tokenAttribute: 'GT' })) // >
-lexer.addRule(/==/, lexeme => ({ lexeme: lexeme.text, tokenName: '=', tokenAttribute: 'EQ' })) // =
+lexer.addRule(/>=/, lexeme => ({ lexeme: lexeme.text, tokenName: '>=', tokenAttribute: 'GE', tokenLine: noLines  })) // >=
+lexer.addRule(/<=/, lexeme => ({ lexeme: lexeme.text, tokenName: '<=', tokenAttribute: 'LE', tokenLine: noLines  })) // <=
+lexer.addRule(/!=/, lexeme => ({ lexeme: lexeme.text, tokenName: '<>', tokenAttribute: 'NE', tokenLine: noLines  })) // <>
+lexer.addRule(/</, lexeme => ({ lexeme: lexeme.text, tokenName: '<', tokenAttribute: 'LT', tokenLine: noLines  })) // <
+lexer.addRule(/>/, lexeme => ({ lexeme: lexeme.text, tokenName: '>', tokenAttribute: 'GT', tokenLine: noLines  })) // >
+lexer.addRule(/==/, lexeme => ({ lexeme: lexeme.text, tokenName: '=', tokenAttribute: 'EQ', tokenLine: noLines })) // =
 
 lexer.addRule(/\/\*(.|\s)*\*\//) // Ignora comentários
 
 lexer.addStateRule('*', /[;,\*\+\/=()\[\]{}\-]/, lexeme => ({
 	lexeme: lexeme.text,
 	tokenName: lexeme.text,
-	tokenAttribute: lexeme.text
+	tokenAttribute: lexeme.text,
+	tokenLine: noLines 
 })) // Caracteres especiais reconhecidos
 
-lexer.addStateRule('*', /.|\n/, lexeme => ({ lexeme: lexeme.text, tokenName: 'ERROR', tokenAttribute: noLines })) // Regra default -> Caracteres inválidos
+lexer.addStateRule('*', /.|\n/, lexeme => ({ lexeme: lexeme.text, tokenName: 'ERROR', tokenAttribute: '', tokenLine: noLines })) // Regra default -> Caracteres inválidos
 
 module.exports = program => {
 	lexer.setSource(program)
