@@ -1,13 +1,27 @@
 const assert = require('chai').assert
-const lexicalize = require('../components/Lexer')
+const expect = require('chai').expect
 
-describe('lexer', () => {
-	it('should lexicalize', async () => {
-		const lexemes = await lexicalize('../examples/program1.cm')
-		expect(lexemes).to.be.an('array').that.have.lengthOf()
+const lexicalize = require('../components/Lexer')
+const fs = require('fs')
+
+// TODO Melhorar escopo de testes
+describe('lexer', async () => {
+	it('program1 should lexicalize without errors', () => {
+		lexicalize(fs.readFileSync('examples/program1.cm')).then(output => {
+			const [lexemes, hasErrors] = output
+			expect(lexemes).to.be.an('array')
+			expect(hasErrors).to.be.false
+		})
 	})
 
-	it('2 * 2 deve ser igual a 8 (nota 0 em matemática)', () => {
-		assert.equal(8, 2 * 2)
+	it('non-existent program should lexicalize with errors', async () => {
+		expect(() => {
+			fs.readFileSync('examples/program122.cm').to.throw()
+			lexicalize().then(output => {
+				const [lexemes, hasErrors] = output
+				expect(lexemes).to.be.an('array')
+				expect(hasErrors).to.be.true
+			})
+		})
 	})
 })
