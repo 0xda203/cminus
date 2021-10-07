@@ -54,7 +54,7 @@ module.exports = program => {
 	lexer.setSource(program)
 	return new Promise((resolve, reject) => {
 		const arr = []
-		var token
+		let token
 		try {
 			while ((token = lexer.lex()) !== Lexer.EOF) arr.push(token)
 			resolve(arr)
