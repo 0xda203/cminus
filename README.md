@@ -18,9 +18,9 @@ Para executar o programa em sua máquina, clone o repositório em sua máquina e
   node index.js programs/program1.cm
 ```
 
-## Supported features
+## Componentes implementados
 
-| Feature              | Status |
+| Componente           | Status |
 | -------------------- | ------ |
 | Lexer                | ✅     |
 | Parser               | ❌     |
