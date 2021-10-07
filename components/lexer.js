@@ -3,6 +3,7 @@ const Lexer = require('flex-js')
 const lexer = new Lexer()
 
 var noLines = 1
+var withErrors = false
 
 lexer.addRule(/[\n]/, _ => {
 	noLines++
@@ -43,12 +44,15 @@ lexer.addStateRule('*', /[;,\*\+\/=()\[\]{}\-]/, lexeme => ({
 	line: noLines
 })) // Caracteres especiais reconhecidos
 
-lexer.addStateRule('*', /.|\n/, lexeme => ({
-	lexeme: lexeme.text,
-	tokenName: 'ERROR',
-	tokenAttribute: '',
-	line: noLines
-})) // Regra default -> Caracteres inválidos
+lexer.addStateRule('*', /.|\n/, lexeme => {
+	withErrors = true
+	return {
+		lexeme: lexeme.text,
+		tokenName: 'ERROR',
+		tokenAttribute: '',
+		line: noLines
+	}
+}) // Regra default -> Caracteres inválidos
 
 module.exports = program => {
 	lexer.setSource(program)
@@ -57,7 +61,7 @@ module.exports = program => {
 		let token
 		try {
 			while ((token = lexer.lex()) !== Lexer.EOF) arr.push(token)
-			resolve(arr)
+			resolve([arr, withErrors])
 		} catch (ex) {
 			reject(ex)
 		}
