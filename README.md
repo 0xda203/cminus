@@ -1,6 +1,6 @@
 # Projeto de Compilador C-
 
-Projeto de Compilador da linguagem C- descrita no livro "Compilers: principles, techniques, & tools" para a disciplina ACH2087 - Construção de compiladores (2021), ministrado pelo prof. Dr. Marcos Lordello Chaim. O programa faz uso da biblioteca [flex.js](https://www.npmjs.com/package/flex-js) para criação do lexer e da biblioteca [jison](https://github.com/lahmatiy/jison) para construção do parser.
+Projeto de Compilador da linguagem C- descrita no livro "Compilers: principles, techniques, & tools" para a disciplina ACH2087 - Construção de compiladores (2021), ministrado pelo prof. Dr. Marcos Lordello Chaim. O programa faz uso da biblioteca [jison-lex](https://github.com/zaach/jison-lex) para criação do lexer e da biblioteca [jison](https://github.com/lahmatiy/jison) para construção do parser.
 
 ## Instalação
 
