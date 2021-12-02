@@ -1,69 +1,75 @@
-const Lexer = require('flex-js')
+const { RegExpLexer } = require("jison/tests/setup");
 
-const lexer = new Lexer()
+const TOKENS = [ 
+"ELSE",
+"IF",
+"INT",
+"RETURN",
+"VOID",
+"WHILE",
+"PLUS",
+"MINUS",
+"TIMES",
+"OVER",
+"ID",
+"NUM",
+"LT",
+"LE",
+"GT",
+"GE",
+"EQ",
+"NE",
+"SEMI",
+"LPAREN",
+"RPAREN",
+"LBRACE",
+"RBRACE",
+"LBRACKET",
+"RBRACKET",
+"COMMA",
+"SEMI",
+"ASSIGN",
+"ERROR",
+];
 
-var noLines = 1
-var withErrors = false
-
-lexer.addRule(/[\n]/, _ => {
-	noLines++
-}) // Quebra de linhas
-
-lexer.addRule(/ +/, lexeme => ({ lexeme: lexeme.text, tokenName: 'whitespace', tokenAttribute: '', line: noLines })) // Espaços
-
-lexer.addRule(/(else|if|int|return|void|while)/, lexeme => ({
-	lexeme: lexeme.text,
-	tokenName: lexeme.text,
-	tokenAttribute: '',
-	line: noLines
-})) // Palavras-chave
-
-lexer.addRule(/={3,}/, lexeme => ({ lexeme: lexeme.text, tokenName: 'ERROR', tokenAttribute: '', line: noLines })) // ===
-
-lexer.addRule(/[0-9]+/, lexeme => ({ lexeme: lexeme.text, tokenName: 'NUM', tokenAttribute: '', line: noLines })) // Número
-lexer.addRule(/[a-zA-Z]+[0-9]*/, lexeme => ({
-	lexeme: lexeme.text,
-	tokenName: 'ID',
-	tokenAttribute: '',
-	line: noLines
-})) // ID
-
-lexer.addRule(/>=/, lexeme => ({ lexeme: lexeme.text, tokenName: '>=', tokenAttribute: 'GE', line: noLines })) // >=
-lexer.addRule(/<=/, lexeme => ({ lexeme: lexeme.text, tokenName: '<=', tokenAttribute: 'LE', line: noLines })) // <=
-lexer.addRule(/!=/, lexeme => ({ lexeme: lexeme.text, tokenName: '<>', tokenAttribute: 'NE', line: noLines })) // <>
-lexer.addRule(/</, lexeme => ({ lexeme: lexeme.text, tokenName: '<', tokenAttribute: 'LT', line: noLines })) // <
-lexer.addRule(/>/, lexeme => ({ lexeme: lexeme.text, tokenName: '>', tokenAttribute: 'GT', line: noLines })) // >
-lexer.addRule(/==/, lexeme => ({ lexeme: lexeme.text, tokenName: '=', tokenAttribute: 'EQ', line: noLines })) // =
-
-lexer.addRule(/\/\*(\*(?!\/)|[^*])*\*\//) // Ignora comentários
-
-lexer.addStateRule('*', /[;,\*\+\/=()\[\]{}\-]/, lexeme => ({
-	lexeme: lexeme.text,
-	tokenName: lexeme.text,
-	tokenAttribute: lexeme.text,
-	line: noLines
-})) // Caracteres especiais reconhecidos
-
-lexer.addStateRule('*', /.|\n/, lexeme => {
-	withErrors = true
-	return {
-		lexeme: lexeme.text,
-		tokenName: 'ERROR',
-		tokenAttribute: '',
-		line: noLines
-	}
-}) // Regra default -> Caracteres inválidos
-
-module.exports = program => {
-	lexer.setSource(program)
-	return new Promise((resolve, reject) => {
-		const arr = []
-		let token
-		try {
-			while ((token = lexer.lex()) !== Lexer.EOF) arr.push(token)
-			resolve([arr, withErrors])
-		} catch (ex) {
-			reject(ex)
-		}
-	})
+const lexData = {
+	macros: {
+		digit: "[0-9]",
+		letter: "[a-zA-Z]",
+	  },
+	  rules: [
+		["\\/\\*[\\s\\S]*?\\*\\/|([^\\\\:]|^)\\/\\/.*$", "/* ignore comment */"],
+		["if", "return 'IF';"],
+		["else", "return 'ELSE';"],
+		["int", "return 'INT';"],
+		["void", "return 'VOID';"],
+		["return", "return 'RETURN';"],
+		["while", "return 'WHILE';"],
+		["\\[", "return 'LBRACE';"],
+		["\\]", "return 'RBRACE';"],
+		["==", "return 'EQ';"],
+		["=", "return 'ASSIGN';"],
+		["<", "return 'LE';"],
+		[">", "return 'GT';"],
+		["<=", "return 'LE';"],
+		[">=", "return 'GE';"],
+		["!=", "return 'NE';"],
+		["\\+", "return 'PLUS'"],
+		["-", "return 'MINUS';"],
+		["\\*", "return 'TIMES';"],
+		["/", "return 'OVER';"],
+		["\\(", "return 'LPAREN';"],
+		["\\)", "return 'RPAREN';"],
+		[";", "return 'SEMI';"],
+		["{digit}+", "return 'NUM';"],
+		["{letter}+", "return 'ID';"],
+		["\n", "yylineno++;"],
+		["\\s+", "/* skip whitespace */"],
+		["\\{", "return 'LCURLY';"],
+		["\\}", "return 'RCURLY';"],
+		[",", "return 'COMMA';"],
+		[".", "return 'ERROR';"],
+	  ],
 }
+
+module.exports = {Lexer: new RegExpLexer(lexData), TOKENS};
