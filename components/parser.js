@@ -1,5 +1,5 @@
 const { Parser } = require(`jison`);
-const TreeNode = require('./TreeNode');
+const TreeNode = require('./treenode');
 
 global.Node = TreeNode;
 
