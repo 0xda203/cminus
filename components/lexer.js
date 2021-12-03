@@ -72,7 +72,8 @@ const lexData = {
 		["\\/\\*", function (){
 			let finished = true;
 			let startline = yylineno + 1;
-			while (yytext.substr(-2) != '\\*\\/' ) {
+
+			while (yytext.substr(-2) != '*/' ) {
 				if (this.more()._input == '') {
 					finished = false;
 					break;
