@@ -1,0 +1,7 @@
+int remover (int k, int n, int v[]) {
+int j;
+for (j = k+1; j < n; ++j)    v[j-1] = v[j];
+return n-1;
+}
+}
+/* funcao ok */

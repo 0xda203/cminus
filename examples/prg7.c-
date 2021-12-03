@@ -1,0 +1,9 @@
+int multr (int m, int n)
+  {
+    int r = 1;
+    # /* caractere invalido */
+    if(n == 0)
+      return 0;
+    else
+      return (m + multr(m, n-1));
+  }

@@ -1,0 +1,15 @@
+/* Este método insere x entre v[k-1] e v[k]
+// no vetor v[0..n-1]. O mtodo supe apenas que
+// 0 <= k <= n. Ele devolve valor de n atualizado. */
+
+int inserir (int k, int x, int n, int v[])
+{
+int j;
+j = n;
+while (j > k) {
+    v[j] = v[j-1];
+    j = j - 1;
+}
+v[k] = x;
+return n;
+}

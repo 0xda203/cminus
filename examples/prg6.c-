@@ -1,0 +1,17 @@
+int buscaBinariar(int valor, int esq, int dir)
+{
+      int meio = (esq + dir)/2;
+
+      if(esq <= dir)
+        {
+         if(valor > vetor[meio])
+            {esq = meio + 1; return buscaBinariar(valor, vetor, esq, dir);}
+         else if(valor < vetor[meio])
+            {dir = meio - 1; return buscaBinariar(valor, vetor, esq, dir);}
+                else
+                return meio;
+       }
+       else
+        return -1; /* retorna -1 se o valor nao for encontrado */
+}
+/* programa ok */
