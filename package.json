@@ -3,15 +3,14 @@
 	"version": "1.0.0",
 	"description": "Compiler for C-",
 	"main": "index.js",
-	"scripts": {
-	},
+	"scripts": {},
 	"author": "",
 	"license": "ISC",
-	"directories": {
-	},
+	"directories": {},
 	"dependencies": {
-		"jison": "^0.4.18",
+		"jison": "https://github.com/0xda203/jison.git",
 		"jison-lex": "^0.3.4",
+		"node-console-colors": "^1.1.4",
 		"treeify": "^1.1.0"
 	},
 	"devDependencies": {
