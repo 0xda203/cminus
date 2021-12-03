@@ -1,20 +1,23 @@
 const { Parser } = require(`jison`);
 const TreeNode = require('./treenode');
+const { TOKENS, SYMBOLS } = require('./lexer')
 
 global.Node = TreeNode;
 
-module.exports = function(lexer, TOKENS) {
+module.exports = function(lexer) {
 
   const grammar = {
     tokens: TOKENS,
     startSymbol: `program`,
     operators: [
+      [`nonassoc`, `LOWER_THAN_ELSE`],
+      [`nonassoc`, `ELSE`],
       [`left`, `PLUS`],
       [`left`, `MINUS`],
       [`left`, `TIMES`],
       [`left`, `OVER`],
       [`left`, `COMMA`],
-      // [`right`, `ASSIGN`],
+      [`right`, `ASSIGN`],
     ],
     bnf: {
       program: [[`declaration_list`, `$$ = new Node('Program', [$1]); return $$;`]],
@@ -124,7 +127,7 @@ module.exports = function(lexer, TOKENS) {
         [`SEMI`, `$$ = null;`],
       ],
       selection_stmt: [
-        [`IF LPAREN expression RPAREN statement`, `$$ = new Node('SELECT_STMT', [$3, $5]);`],
+        [`IF LPAREN expression RPAREN statement %prec LOWER_THAN_ELSE`, `$$ = new Node('SELECT_STMT', [$3, $5]);`],
         [`IF LPAREN expression RPAREN statement ELSE statement`, `$$ = new Node('SELECT_STMT', [$3, $5, $7]);`]
       ],
       iteration_stmt: [ [
@@ -200,24 +203,27 @@ module.exports = function(lexer, TOKENS) {
     },
   };
   
-  const parser = new Parser(grammar, {type: "lalr", debug:false});
+  const parser = new Parser(grammar, {type: "lalr", debug:false, enableDebugLogs: false, reportStats: false});
   
   parser.lexer = lexer;
-
-  parser.yy.parseError = function (err, hash) {
-    // console.log(err)
-    if (!((!hash.expected || hash.expected.indexOf("';'") >= 0) && (hash.token === 'RBRACE' || parser.yy.lineBreak || parser.yy.lastLineBreak || hash.token === 1 ))) {
-        throw new SyntaxError(err);
-    }
-  };
 
   var realLex = parser.lexer.lex;
 
   parser.lexer.lex = function () {
     parser.yy.lastLineBreak = parser.yy.lineBreak;
     parser.yy.lineBreak = false;
+    parser.yy.showPosition = this.showPosition();
     return realLex.call(this);
   };
   
+
+  parser.yy.parseError = function (err, hash) {
+    if (!((!hash.expected || hash.expected.indexOf("';'") >= 0) && (hash.token === 'RBRACE' || hash.token === 'ERROR' || parser.yy.lineBreak || parser.yy.lastLineBreak || hash.token === 1 ))) {
+      const lst = hash.expected.map(item => "'" + SYMBOLS[item.replace(/'/g, '')] + "'").join(", ")
+      const message = `Unrecognized expression '${hash.text}' at line ${hash.line}, expected ${lst}\n${hash.position}`
+        throw new SyntaxError(message);
+    }
+  };
+
   return parser;
 }
