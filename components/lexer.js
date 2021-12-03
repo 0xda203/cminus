@@ -1,4 +1,4 @@
-const { RegExpLexer } = require("jison/tests/setup");
+const RegExpLexer = require("jison-lex");
 
 const TOKENS = [ 
 "ELSE",
@@ -32,13 +32,63 @@ const TOKENS = [
 "ERROR",
 ];
 
+const SYMBOLS = {
+	"ELSE": "else",
+	"IF": "if",
+	"INT": "int",
+	"RETURN": "return",
+	"VOID": "void",
+	"WHILE": "while",
+	"PLUS": "plus",
+	"MINUS": "-",
+	"TIMES": "*",
+	"OVER": "/",
+	"ID": "identifier",
+	"NUM": "number",
+	"LT": "<",
+	"LE": "<=",
+	"GT": ">",
+	"GE": ">=",
+	"EQ": "=",
+	"NE": "!=",
+	"SEMI": ";",
+	"LPAREN": "(",
+	"RPAREN": ")",
+	"LBRACE": "[",
+	"RBRACE": "]",
+	"LBRACKET": "{",
+	"RBRACKET": "}",
+	"COMMA": ",",
+	"SEMI": ";",
+	"ASSIGN": "==",
+};
+
 const lexData = {
 	macros: {
 		digit: "[0-9]",
 		letter: "[a-zA-Z]",
 	  },
 	  rules: [
-		["\\/\\*[\\s\\S]*?\\*\\/|([^\\\\:]|^)\\/\\/.*$", "/* ignore comment */"],
+		["\\/\\*", function (){
+			let finished = true;
+			let startline = yylineno + 1;
+			while (yytext.substr(-2) != '\\*\\/' ) {
+				if (this.more()._input == '') {
+					finished = false;
+					break;
+				}
+				this.input();
+			}
+
+			if (!finished) {
+				throw new SyntaxError(`Unfinished comment at line ${startline}\n${this.showPosition()}`);
+			}
+			/* ignore comment */
+		}],
+		["\\/\\/", function (){
+			throw new SyntaxError(`Unexpected token '//' in expression or statement at line ${yylineno + 1}\n${this.showPosition()}`);
+		}],
+		["\\s+", "/* skip whitespace */"],
 		["if", "return 'IF';"],
 		["else", "return 'ELSE';"],
 		["int", "return 'INT';"],
@@ -64,12 +114,13 @@ const lexData = {
 		["{digit}+", "return 'NUM';"],
 		["{letter}+", "return 'ID';"],
 		["\n", "yylineno++;"],
-		["\\s+", "/* skip whitespace */"],
 		["\\{", "return 'LCURLY';"],
 		["\\}", "return 'RCURLY';"],
 		[",", "return 'COMMA';"],
-		[".", "return 'ERROR';"],
-	  ],
+		[".", function (){
+			throw new SyntaxError(`Unexpected token '${yytext}' in expression or statement on line ${yylineno + 1}\n${this.showPosition()}`);
+		}],
+	],
 }
 
-module.exports = {Lexer: new RegExpLexer(lexData), TOKENS};
+module.exports = {Lexer: new RegExpLexer(lexData), TOKENS, SYMBOLS};
