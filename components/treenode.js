@@ -1,6 +1,6 @@
 const treeify = require('treeify');
 
-function TreeNode(name, children = [], attr = {}) {
+function TreeNode(lineno, name, children = [], attr = {}) {
     const obj = {
         [name]: {
         }
@@ -9,6 +9,11 @@ function TreeNode(name, children = [], attr = {}) {
     Object.defineProperty(obj, 'name', {
         enumerable : false,
         value : name
+    })
+
+    Object.defineProperty(obj, 'lineno', {
+        enumerable : false,
+        value : lineno
     })
 
     if (children.length > 0) {
