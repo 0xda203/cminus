@@ -30,7 +30,7 @@ Para executar o programa em sua máquina, clone o repositório em sua máquina e
 | -------------------- | ------ |
 | Lexer                | ✅     |
 | Parser               | ✅     |
-| Analisador semântico | ❌     |
+| Analisador semântico | ✅     |
 | Geração de Código    | ❌     |
 | Otimização           | ❌     |
 
