@@ -66,7 +66,6 @@ function typeChecking(par, node, scope = "global") {
                 type = tree[tree.name].children[0]['TYPE'].type;
                 identifier = tree[tree.name].children[1]['IDENTIFIER'].name;
                 tree[tree.name].children[1].nodetype = type;
-                // console.log(tree[tree.name].children[1])
                 if (typeTable.hasOwnProperty(scope) && !typeTable.hasOwnProperty(identifier)) typeTable[scope][identifier] = {
                     identifier,
                     type,
@@ -80,7 +79,6 @@ function typeChecking(par, node, scope = "global") {
             case 'ARR_VAR':
                 tree[tree.name].children[1].isIndex = true;
                 identifier = typeTable[scope][tree[tree.name].children[0]["IDENTIFIER"].name].type;
-                // console.log((tree[tree.name].children[1].name));
                 if (typeTable.hasOwnProperty(scope) && identifier) {
                     tree.nodetype = identifier;
                 }
@@ -114,8 +112,7 @@ function typeChecking(par, node, scope = "global") {
                 } else if (scope != "global" && typeTable["global"].hasOwnProperty(tree["IDENTIFIER"].name)) {
                     tree.nodetype = typeTable["global"][tree["IDENTIFIER"].name].type;
                 } else {
-                    // console.log(typeTable);
-                    // tree.nodetype = "undefined";
+                    tree.nodetype = "undefined";
                 }
                 break;
             case 'COMPOUND_STMT':
@@ -253,7 +250,6 @@ function treeParse(par, node, scope = "global") {
             case "ARR_VAR":
                 tree[tree.name].children[1].isIndex = true;
                 identifier = typeTable[scope][tree[tree.name].children[0]["IDENTIFIER"].name].type;
-                // console.log((tree[tree.name].children[1].name));
                 if (typeTable.hasOwnProperty(scope) && identifier) {
                     tree.nodetype = identifier;
                 }
@@ -318,10 +314,8 @@ function treeParse(par, node, scope = "global") {
                 }
                 break;
             case "IDENTIFIER":
-                // console.log(tree["IDENTIFIER"].name)
                 if (symbTable.hasOwnProperty(scope) && symbTable[scope].hasOwnProperty(tree["IDENTIFIER"].name)) {
                     temp = symbTable[scope][tree["IDENTIFIER"].name];
-                    // console.log(tree["IDENTIFIER"].name);
                     if (temp.type) tree.nodetype = temp.isArray ? "array" : temp.type;
                     if (temp.isArray) tree.isArray = true;
                     if (temp.isIndex) tree.isIndex = true;
@@ -367,7 +361,6 @@ function treeParse(par, node, scope = "global") {
                     } else {
                         countSiblings(tree[tree.name].children[0])
                         const parameters = symbTable["global"][identifier].siblings;
-                        // console.log(parameters);
                         const bparameters = countSiblings(tree[tree.name].children[1])
                         if (parameters.length > bparameters.length) {
                             errors++;
@@ -388,7 +381,6 @@ function treeParse(par, node, scope = "global") {
 
                     }
                 }
-                // tmp = symbTable["global"][tree[tree.name]]
                 break;
             case "==":
             case "!=":
