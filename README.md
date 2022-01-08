@@ -31,7 +31,7 @@ Para executar o programa em sua máquina, clone o repositório em sua máquina e
 | Lexer                | ✅     |
 | Parser               | ✅     |
 | Analisador semântico | ✅     |
-| Geração de Código    | ⚠️     |
+| Geração de Código    | ✅     |
 | Otimização           | ❌     |
 
 ## Autores
