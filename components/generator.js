@@ -332,10 +332,10 @@ function localGeneration(tree, currStack, travSibling) {
 
 module.exports = function (tree) {
     const init = [
-        `.data`,
-        'newline: .asciiz `\\n`',
-        'print: .asciiz `Output : `',
-        'read_str: .asciiz `Input : `\n\n.text',
+        ".data",
+        'newline: .asciiz "\\n"',
+        'print: .asciiz "Output : "',
+        'read_str: .asciiz "Input : "\n\n.text',
     ];
 
     generate(tree);
