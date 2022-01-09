@@ -1,25 +1,32 @@
-const fs = require('fs')
 const cc = require("node-console-colors");
-const Parser = require('./components/Parser')
-const { Lexer }  = require('./components/Lexer')
-const analyze = require('./components/Analyzer')
+const Compiler = require('./compiler')
+const fs = require('fs');
+const util = require('util');
 
-const compile = async () => {
-	const [, , ...args] = process.argv
-	const path = args[0]
+const writeToFile = (file, text) => util.promisify(fs.writeFile)(file, text);
+
+function main() {
+	const [, , ...args] = process.argv;
+	const [inputFile, outputFile] = args;
+
 	try {
-		const data = fs.readFileSync(path, 'utf-8').replace(/\r/g, '')
-		const lines = data.toString().split('\n')
-
-		const showError = require('./util/errors')(lines);
-
-		const parser = Parser(Lexer, showError);
-		const ast = parser.parse(data);
-		analyze(ast, showError);
+		const data = fs.readFileSync(inputFile, "utf-8").replace(/\r/g, "");
+		const compiler = new Compiler();
+		const [message, generatedCode] = compiler.compile(data);
+		if (message) {
+			console.log(message);
+		} else {
+			console.error(cc.set("fg_white", "Compiled with 0 errors"));
+			writeToFile(outputFile, generatedCode);
+			console.error(cc.set("fg_green", `Output file saved in ${outputFile}`));
+		}
 	} catch (err) {
-		if (err.code === 'ENOENT') console.error(cc.set("fg_dark_red", 'Erro: Arquivo de entrada inválido.'))
-		else console.error(cc.set("fg_dark_red", err.name + ": " + err.message))
+		if (err.code === "ENOENT")
+			console.error(cc.set("fg_dark_red", "Erro: Arquivo de entrada inválido."));
+		else console.error(cc.set("fg_dark_red", err.name + ": " + err.message));
 	}
 }
 
-compile()
+if (require.main === module) {
+	main();
+}
