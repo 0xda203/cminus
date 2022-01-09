@@ -1,73 +1,12 @@
 const RegExpLexer = require("jison-lex");
 
-const TOKENS = [
-	"ELSE",
-	"IF",
-	"INT",
-	"RETURN",
-	"VOID",
-	"WHILE",
-	"PLUS",
-	"MINUS",
-	"TIMES",
-	"OVER",
-	"ID",
-	"NUM",
-	"LT",
-	"LE",
-	"GT",
-	"GE",
-	"EQ",
-	"NE",
-	"SEMI",
-	"LPAREN",
-	"RPAREN",
-	"LBRACE",
-	"RBRACE",
-	"LBRACKET",
-	"RBRACKET",
-	"COMMA",
-	"SEMI",
-	"ASSIGN",
-	"ERROR",
-];
-
-const SYMBOLS = {
-	"ELSE": "else",
-	"IF": "if",
-	"INT": "int",
-	"RETURN": "return",
-	"VOID": "void",
-	"WHILE": "while",
-	"PLUS": "plus",
-	"MINUS": "-",
-	"TIMES": "*",
-	"OVER": "/",
-	"ID": "identifier",
-	"NUM": "number",
-	"LT": "<",
-	"LE": "<=",
-	"GT": ">",
-	"GE": ">=",
-	"EQ": "==",
-	"NE": "!=",
-	"ASSIGN": "=",
-	"COMMA": ",",
-	"SEMI": ";",
-	"LPAREN": "(",
-	"RPAREN": ")",
-	"LBRACE": "[",
-	"RBRACE": "]",
-	"LBRACKET": "{",
-	"RBRACKET": "}",
-};
-
 const lexData = {
 	macros: {
 		digit: "[0-9]",
 		letter: "[a-zA-Z]",
 	},
 	rules: [
+		/* ignore comment */
 		["\\/\\*", function () {
 			let finished = true;
 			let startline = yylineno + 1;
@@ -76,6 +15,8 @@ const lexData = {
 				if (this.more()._input == '') {
 					finished = false;
 					break;
+				} else {
+					yylineno++;
 				}
 				this.input();
 			}
@@ -83,7 +24,6 @@ const lexData = {
 			if (!finished) {
 				throw new SyntaxError(`Unfinished comment at line ${startline}\n${this.showPosition()}`);
 			}
-			/* ignore comment */
 		}],
 		["\\/\\/", function () {
 			throw new SyntaxError(`Unexpected token '//' in expression or statement at line ${yylineno + 1}\n${this.showPosition()}`);
@@ -123,4 +63,8 @@ const lexData = {
 	],
 }
 
-module.exports = { Lexer: new RegExpLexer(lexData), TOKENS, SYMBOLS };
+const Lexer = new RegExpLexer(lexData);
+const realLex = Lexer.lex;
+
+global.lexer = Lexer;
+module.exports = Lexer;
