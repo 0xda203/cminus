@@ -27,7 +27,7 @@ function Compiler(options) {
         let message, generatedCode;
 
         if (errors > 0) {
-            message = `Compilation failed with ${errors} errors.`;
+            message = `Compilation failed with errors.`;
         } else {
             generatedCode = this.generator.generate(parseTree);
         }
