@@ -18,12 +18,6 @@ Para executar o programa em sua máquina, clone o repositório em sua máquina e
   node index.js programs/program1.cm
 ```
 
-## Testes
-
-```bash
-  npm run test
-```
-
 ## Componentes implementados
 
 | Componente           | Status |
