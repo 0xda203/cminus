@@ -1,6 +1,6 @@
 # Projeto de Compilador C-
 
-Projeto de Compilador da linguagem C- descrita no livro "Compilers: principles, techniques, & tools" para a disciplina ACH2087 - Construção de compiladores (2021), ministrado pelo prof. Dr. Marcos Lordello Chaim. O programa faz uso da biblioteca [jison-lex](https://github.com/zaach/jison-lex) para criação do lexer e da biblioteca [jison](https://github.com/lahmatiy/jison) para construção do parser. A biblioteca [treeify](https://github.com/notatestuser/treeify) foi utilizada para melhor visualização da árvore da abstrata no console.
+Projeto de Compilador da linguagem C- descrita no livro "Compilers: principles, techniques, & tools" para a disciplina ACH2087 - Construção de compiladores (2021), ministrado pelo prof. Dr. Marcos Lordello Chaim. O programa faz uso da biblioteca [jison-lex](https://github.com/zaach/jison-lex) para criação do lexer e da biblioteca [jison](https://github.com/lahmatiy/jison) para construção do parser.
 
 ## Instalação
 
