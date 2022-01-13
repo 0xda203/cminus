@@ -7,7 +7,7 @@ Projeto de Compilador da linguagem C- descrita no livro "Compilers: principles, 
 Para executar o programa em sua máquina, clone o repositório em sua máquina e execute os comandos abaixo. Antes, certifique-se de que o Node.js está instalado.
 
 ```bash
-  git clone git@github.com/0xfe2f/cminus.git
+  git clone git@github.com/0xda203/cminus.git
   cd cminus-main
   npm install
 ```
