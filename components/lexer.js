@@ -63,7 +63,6 @@ const lexData = {
 }
 
 const Lexer = new RegExpLexer(lexData);
-const realLex = Lexer.lex;
 
 global.lexer = Lexer;
 module.exports = Lexer;
