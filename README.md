@@ -15,7 +15,7 @@ Para executar o programa em sua máquina, clone o repositório em sua máquina e
 ## Utilização básica
 
 ```bash
-  node index.js programs/program1.cm
+  node index.js examples/lauden_exemplo.c-
 ```
 
 ## Componentes implementados
