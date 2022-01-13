@@ -9,7 +9,7 @@ Para executar o programa em sua máquina, clone o repositório em sua máquina e
 ```bash
   git clone git@github.com/0xda203/cminus.git
   cd cminus-main
-  npm install
+  yarn
 ```
 
 ## Utilização básica
