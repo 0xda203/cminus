@@ -3,7 +3,10 @@
 	"version": "1.0.0",
 	"description": "Compiler for C-",
 	"main": "index.js",
-	"scripts": {},
+	"scripts": {
+		"mars": "java -jar bin/Mars4_5.jar",
+		"compile": "node index.js"
+	},
 	"author": "",
 	"license": "ISC",
 	"directories": {},
