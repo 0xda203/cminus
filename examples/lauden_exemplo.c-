@@ -33,32 +33,12 @@ while(i < high-1){
 }
 }
 
-int input(int d) {
-  int q; int r; int e;
-
-  e = d % 2;
-
-  q = 500/d;
-  r = 400%d;
-
-  if (e == 0)
-   return r;
-  else
-    return q;
-}
-
-void output(int p) {
-/* Imprime o parâmetro p */
-/* Essa função pode fazer já parte do seu compilador C-
-...
-}
-
 
 void main(void) {
 int i;
 i = 0;
 while(i<10) {
-  x[i] = input(i);
+  x[i] = input();
   i = i + 1;
 }
 sort(x,0,10);
