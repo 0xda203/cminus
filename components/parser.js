@@ -20,7 +20,7 @@ function Parser(lexer) {
 
   parser.yy.parseError = function (err, hash) {
     if (!((!hash.expected || hash.expected.indexOf("';'") >= 0) && (hash.token === 'RBRACE' || hash.token === 'ERROR' || parser.yy.lineBreak || parser.yy.lastLineBreak || hash.token === 1))) {
-      const message = `Unrecognized expression '${hash.text}' at line ${hash.line}`;
+      const message = `Unrecognized expression at line ${hash.line}`;
       throw new ParserError(this.showError(hash.text, hash.loc.first_line - 1, message, false, ""));
     }
   };

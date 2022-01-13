@@ -15,9 +15,8 @@ const lexData = {
 				if (this.more()._input == '') {
 					finished = false;
 					break;
-				} else {
-					yylineno++;
 				}
+
 				this.input();
 			}
 
@@ -53,7 +52,7 @@ const lexData = {
 		[";", "return 'SEMI';"],
 		["{digit}+", "return 'NUM';"],
 		["{letter}+", "return 'ID';"],
-		["\n", "yylineno++;"],
+		["\\n", "yylineno++;"],
 		["\\{", "return 'LCURLY';"],
 		["\\}", "return 'RCURLY';"],
 		[",", "return 'COMMA';"],

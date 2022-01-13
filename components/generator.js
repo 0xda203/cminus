@@ -27,9 +27,9 @@ function Generator() {
             switch (node.name) {
                 case `VAR_DECL`:
                 case `ARR_DECL`:
-                    node.memloc = malloc(WORD_SIZE * node.size);
+                    node.memloc = malloc(WORD_SIZE * node.symbol.size);
                     node.symbol.memloc = node.memloc;
-                    node.isGlobal = node.scope === `global`;
+                    node.isGlobal = node.symbol.scope === `global`;
                     break;
                 case `FUNC_DECL`:
                     if (node.isNative) break;
@@ -39,10 +39,10 @@ function Generator() {
                         mainIndex = -1;
                     }
                     writeLine(`${node.identifier}:`, true);
-                    let param = node[node.name].children[1],
-                        loc = node.no_parameters * WORD_SIZE;
+                    let param = node.children[1],
+                        loc = node.symbol.noParameters * WORD_SIZE;
                     if (param && param.name.startsWith(`PARAM`)) {
-                        for (param; param; param = param.sibling) {
+                        for (param; !!param; param = param.sibling) {
                             loc = loc - WORD_SIZE;
                             param.symbol.memloc = loc;
                             param.memloc = loc;
@@ -107,9 +107,9 @@ function Generator() {
                     break;
                 case `ARR_DECL`:
 
-                    writeLine(`addiu $sp, $sp, ${-WORD_SIZE * node.size}`);
-                    node.memloc = -currStack - WORD_SIZE * node.size;
-                    currStack = currStack + WORD_SIZE * node.size;
+                    writeLine(`addiu $sp, $sp, ${-WORD_SIZE * node.symbol.size}`);
+                    node.memloc = -currStack - WORD_SIZE * node.symbol.size;
+                    currStack = currStack + WORD_SIZE * node.symbol.size;
                     node.symbol.memloc = node.memloc;
                     break;
                 case `COMPOUND_STMT`:
@@ -141,16 +141,17 @@ function Generator() {
                     writeLine(`bnez $v0, L${l_loop}`);
                     break;
                 case `RETURN_STMT`:
-                    let ret_expr = node[node.name].children[0];
+                    let ret_expr = node.children[0];
                     if (ret_expr) {
                         this.localGeneration(ret_expr, currStack, 0)
                     }
                     writeLine(`j L${l_cleanup}`);
                     break;
                 case `ASSIGN`:
-                    let assign_var = node[node.name].children[0],
-                        assign_expr = node[node.name].children[1];
+                    let assign_var = node.children[0],
+                        assign_expr = node.children[1];
                     this.localGeneration(assign_expr, currStack, 0)
+                    // console.log(assign_var)
                     if (assign_var.symbol.isArray) {
                         writeLine(`move $s1, $v0`);
                         this.localGeneration(assign_var.arr_expr, currStack, 0)
@@ -176,12 +177,11 @@ function Generator() {
                 case `<=`:
                 case `==`:
                 case `!=`:
-
-                    this.localGeneration(node.term, currStack, 0)
+                    this.localGeneration(node.left, currStack, 0)
                     writeLine(`addiu $sp, $sp, -${WORD_SIZE}`)
                     writeLine(`sw $v0, 0($sp)`);
                     currStack = currStack + WORD_SIZE;
-                    this.localGeneration(node.factor, currStack, 0)
+                    this.localGeneration(node.right, currStack, 0)
                     writeLine(`lw $s0, 0($sp)`)
                     writeLine(`addiu $sp, $sp, ${WORD_SIZE}`);
                     currStack = currStack - WORD_SIZE;
@@ -194,11 +194,11 @@ function Generator() {
                     break;
                 case `+`:
                 case `-`:
-                    this.localGeneration(node.term, currStack, 0)
+                    this.localGeneration(node.left, currStack, 0)
                     writeLine(`addiu $sp, $sp, -${WORD_SIZE}`)
                     writeLine(`sw $v0, 0($sp)`);
                     currStack = currStack + WORD_SIZE;
-                    this.localGeneration(node.factor, currStack, 0)
+                    this.localGeneration(node.right, currStack, 0)
                     writeLine(`lw $s0, 0($sp)`)
                     writeLine(`addiu $sp, $sp, ${WORD_SIZE}`);
                     currStack = currStack - WORD_SIZE;
@@ -207,11 +207,11 @@ function Generator() {
                 case `*`:
                 case `/`:
 
-                    this.localGeneration(node.term, currStack, 0)
+                    this.localGeneration(node.left, currStack, 0)
                     writeLine(`addiu $sp, $sp, -${WORD_SIZE}`)
                     writeLine(`sw $v0, 0($sp)`);
                     currStack = currStack + WORD_SIZE;
-                    this.localGeneration(node.factor, currStack, 0)
+                    this.localGeneration(node.right, currStack, 0)
                     writeLine(`lw $s0, 0($sp)`)
                     writeLine(`addiu $sp, $sp, ${WORD_SIZE}`);
                     currStack = currStack - WORD_SIZE;
@@ -219,8 +219,7 @@ function Generator() {
                     break;
                 case `CALL`:
                     let loc = 0, args_list = node.args_list;
-
-                    if (node.identifier === `input`) {
+                    if (node.symbol.identifier === `input`) {
                         writeLine(
                             `li $v0, 4`)
                         writeLine(`la $a0, read_str`)
@@ -228,7 +227,7 @@ function Generator() {
                         writeLine(`li $v0, 5`)
                         writeLine(`syscall`
                         );
-                    } else if (node.identifier === `output`) {
+                    } else if (node.symbol.identifier === `output`) {
                         writeLine(
                             `move $t0, $v0`)
                         writeLine(`li $v0, 4`)
@@ -257,13 +256,14 @@ function Generator() {
 
                             args_list = args_list.sibling;
                         }
-                        writeLine(`jal ${node.identifier}`)
+                        writeLine(`jal ${node.symbol.identifier}`)
                         writeLine(`addiu $sp, $sp, ${loc}`);
                     }
                     break;
                 case `ARR_VAR`:
-                    let arr_var_identifier = node[node.name].children[0],
-                        arr_var_expr = node[node.name].children[1];
+                    let arr_var_identifier = node.children[0],
+                        arr_var_expr = node.children[1];
+
                     this.localGeneration(arr_var_expr, currStack, 0)
                     writeLine(`li $s0, ${WORD_SIZE}`)
                     writeLine(`mul $s0, $v0, $s0`);
@@ -272,20 +272,19 @@ function Generator() {
                     writeLine(`lw $v0, 0($v0)`);
                     break;
                 case `IDENTIFIER`:
-                    if (node.isArray) {
-
+                    if (node.symbol.isArray) {
                         writeLine(
-                            node.scope === `global`
+                            node.symbol.scope === `global`
                                 ? `li $v0, ${node.symbol.memloc}`
                                 : `addiu $v0, $fp, ${node.symbol.memloc}`
                         );
-                        if (node.isParam) {
+                        if (node.symbol.isParam) {
                             writeLine(`lw $v0, 0($v0)`);
 
                         }
                     } else {
                         writeLine(
-                            node.scope === `global`
+                            node.symbol.scope === `global`
                                 ? `lw $v0, ${node.symbol.memloc}`
                                 : `lw $v0, ${node.symbol.memloc}($fp)`
                         );

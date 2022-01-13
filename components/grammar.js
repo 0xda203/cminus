@@ -45,12 +45,12 @@ const grammar = {
             [`INT`, `$$  = new TreeNode(yylineno,'TYPE', [], {type: 'int'});`],
             [`VOID`, `$$ = new TreeNode(yylineno,'TYPE', [], {type: 'void'});`],
         ],
-        identifier: [[`ID`, `$$ = new TreeNode(yylineno,'IDENTIFIER', [], {name: yytext});`]],
+        identifier: [[`ID`, `$$ = new TreeNode(yylineno,'IDENTIFIER', [], {identifier: yytext});`]],
         number: [[`NUM`, `$$ = new TreeNode(yylineno,'CONSTANT', [], {value: parseInt(yytext)});`]],
         func_declaration: [
             [
                 `type_specifier identifier LPAREN params RPAREN compound_stmt`,
-                `$$ = new TreeNode($2.lineno,'FUNC_DECL', [$1, $4, $6], {name: $2[$2.name].name}); `,
+                `$$ = new TreeNode($2.lineno,'FUNC_DECL', [$1, $4, $6], {identifier: $2.identifier}); `,
             ],
         ],
         params: [
@@ -141,7 +141,7 @@ const grammar = {
             [`identifier LBRACE expression RBRACE`, `$$ = new TreeNode(yylineno,'ARR_VAR', [$1, $3]);`],
         ],
         simple_expression: [
-            [`additive_expression relop additive_expression`, `$$ = $2; $$[$$.name].children = [$1, $3];`],
+            [`additive_expression relop additive_expression`, `$$ = $2; $$.children = [$1, $3];`],
             [`additive_expression`, `$$ = $1;`],
         ],
         relop: [
@@ -153,7 +153,7 @@ const grammar = {
             [`NE`, `$$ = new TreeNode(yylineno,'!=', [], {op: 'NE'});`],
         ],
         additive_expression: [
-            [`additive_expression addop term`, `$$ = $2; $$[$$.name].children = [$1, $3];`],
+            [`additive_expression addop term`, `$$ = $2; $$.children = [$1, $3];`],
             [`term`, `$$ = $1;`],
         ],
         addop: [
@@ -161,7 +161,7 @@ const grammar = {
             [`MINUS`, `$$ = new TreeNode(yylineno,'-', [], {op: 'MINUS'});`],
         ],
         term: [
-            [`term mulop factor `, `$$ = $2; $$[$$.name].children = [$1, $3];;`],
+            [`term mulop factor `, `$$ = $2; $$.children = [$1, $3];;`],
             [`factor`, `$$ = $1;`],
         ],
         mulop: [

@@ -1,606 +1,307 @@
-const io = require("../util/io");
+const io = require('../util/io')
+const SymbolTable = require('./symboltable')
 
-let return_found;
-
-const typeTable = { global: {} };
-const symbTable = { global: {} };
+const typeTable = new SymbolTable();
 
 function findSiblings(node) {
+    let p = node;
     let arr = [];
-    while (node) {
-        arr.push(node.isArray ? "array" : node.nodetype);
-        node = node.sibling;
+    while (p && p.name != "COMPOUND_STMT") {
+        arr.push(p.type || p.value || p.children[0].type);
+        p = p.sibling;
     }
     return arr;
 }
 
-function lookup(node, el, table) {
+
+function decorate(_node, parent, scope = "global") {
+    let node = _node;
     while (node) {
-        if (table[node.scope].hasOwnProperty(el)) return table[node.scope][el];
-        node = node.par;
-    }
-}
-
-function treeDecoration(node, par, scope = "global") {
-    let tree = node;
-    let parent = par ? par : undefined;
-
-    while (tree) {
-        let temp,
-            lineno = tree.lineno;
-        let type, identifier;
-
-        tree.scope = scope;
-        tree.par = parent ? { scope: parent.scope, par: parent.par } : undefined;
-
-        switch (tree.name) {
+        let type, identifier, temp;
+        switch (node.name) {
             case "VAR_DECL":
-                type = tree[tree.name].children[0]["TYPE"].type;
-                identifier = tree[tree.name].children[1]["IDENTIFIER"].name;
-                tree[tree.name].children[1].nodetype = type;
-                if (
-                    typeTable.hasOwnProperty(scope) &&
-                    !typeTable[scope].hasOwnProperty(identifier)
-                ) {
-                    typeTable[scope][identifier] = {
-                        identifier,
-                        type,
-                        kind: "variable",
-                        isArray: false,
-                        lineno,
-                        scope,
-                    };
-                }
-
-                tree.size = 1;
-                tree.nodetype = type;
-                tree.identifier = identifier;
-                tree.isGlobal = tree.scope === `global`;
-                tree.symbol = typeTable[scope][identifier];
-
+                type = node.children[0].type;
+                identifier = node.children[1].identifier;
+                node.symbol = typeTable.insert(identifier, { type, kind: 'variable', size: 1 }, scope)
                 break;
-
             case "ARR_DECL":
-                type = tree[tree.name].children[0]["TYPE"].type;
-                identifier = tree[tree.name].children[1]["IDENTIFIER"].name;
-                const length = tree[tree.name].children[2]["CONSTANT"].value;
-                tree[tree.name].children[2].isStatic = true;
-                tree[tree.name].children[1].nodetype = type;
-
-                tree.size = length;
-                tree.nodetype = type;
-                tree.identifier = identifier;
-
-                if (
-                    typeTable.hasOwnProperty(scope) &&
-                    !typeTable.hasOwnProperty(identifier)
-                )
-                    typeTable[scope][identifier] = {
-                        identifier,
-                        type,
-                        kind: "variable",
-                        lineno,
-                        length,
-                        scope,
-                        isArray: true,
-                    };
-
-                tree.isGlobal = tree.scope === `global`;
-
-                tree.symbol = typeTable[scope][identifier];
-
-                break;
-            case "PARAM_VAR":
-                type = tree[tree.name].children[0]["TYPE"].type;
-                identifier = tree[tree.name].children[1]["IDENTIFIER"].name;
-                if (
-                    typeTable.hasOwnProperty(scope) &&
-                    !typeTable.hasOwnProperty(identifier)
-                )
-                    typeTable[scope][identifier] = {
-                        identifier,
-                        type,
-                        kind: "variable",
-                        lineno,
-                        scope,
-                        isParam: true,
-                        isArray: false,
-                    };
-                tree.nodetype = tree[tree.name].children[0]["TYPE"].type;
-                tree.identifier = identifier;
-                tree.scope = scope;
-                tree.symbol = typeTable[scope][identifier];
-
-                break;
-            case "PARAM_ARR":
-                type = tree[tree.name].children[0]["TYPE"].type;
-                identifier = tree[tree.name].children[1]["IDENTIFIER"].name;
-
-                tree[tree.name].children[1].nodetype = type;
-                if (
-                    typeTable.hasOwnProperty(scope) &&
-                    !typeTable.hasOwnProperty(identifier)
-                )
-                    typeTable[scope][identifier] = {
-                        identifier,
-                        type,
-                        kind: "variable",
-                        lineno,
-                        scope,
-                        isParam: true,
-                        isArray: true,
-                    };
-                tree.nodetype = "array";
-                tree.scope = scope;
-                tree.identifier = identifier;
-
-                tree.symbol = typeTable[scope][identifier];
-
-                break;
-            case "ARR_VAR":
-                tree[tree.name].children[1].isIndex = true;
-                identifier = lookup(
-                    tree,
-                    tree[tree.name].children[0]["IDENTIFIER"].name,
-                    typeTable
-                );
-
-                if (identifier) {
-                    tree.symbol = identifier;
-                    if (identifier.isParam) tree.isParam = true;
-                    tree.nodetype = identifier.type;
-                    tree.scope = identifier.scope;
-                    tree.identifier = identifier.identifier;
-
-                    tree.arr_identifier = tree[tree.name].children[0];
-                    tree.arr_expr = tree[tree.name].children[1];
-                }
-
+                type = node.children[0].type;
+                identifier = node.children[1].identifier;
+                size = node.children[2].value;
+                node.symbol = typeTable.insert(identifier, { type, kind: "variable", isArray: true, size }, scope)
                 break;
             case "FUNC_DECL":
-                identifier = tree[tree.name].name;
-                tree.no_parameters = findSiblings(tree[tree.name].children[1]).length;
-                type = tree[tree.name].children[0]["TYPE"].type;
-                tree.identifier = identifier;
-
-                tree.compound_stmt = tree[tree.name].children[tree[tree.name].children.length - 1];
-
-                if (!typeTable.hasOwnProperty(identifier)) {
-                    typeTable[identifier] = {};
-                    typeTable["global"][identifier] = {
-                        identifier,
-                        type,
-                        kind: "function",
-                        lineno,
-                        scope,
-                        parameters: tree.no_parameters,
-                    };
-                }
-
+                identifier = node.identifier;
+                type = node.children[0].type;
+                let parameters = findSiblings(node.children[1]);
+                node.symbol = typeTable.insert(identifier, { type, kind: "function", noParameters: parameters.length, parameters }, scope, true)
                 scope = identifier;
+                node.compound_stmt = node.children[node.children.length - 1];
+                break;
+            case "PARAM_VAR":
+                type = node.children[0].type;
+                identifier = node.children[1].identifier;
+                node.symbol = typeTable.insert(identifier, { type, kind: "variable", isParam: true }, scope)
+                node.type = "int";
+                break;
+            case "PARAM_ARR":
+                type = node.children[0].type;
+                identifier = node.children[1].identifier;
+                node.symbol = typeTable.insert(identifier, { type, kind: "variable", isParam: true, isArray: true }, scope)
+                node.type = "array";
+                break;
+            case "ARR_VAR":
+                identifier = node.children[0].identifier;
+                temp = typeTable.lookup(identifier, scope);
+                node.type = "int";
+                if (temp) {
+                    node.symbol = temp;
+                    node.arr_identifier = node.children[0];
+                    node.arr_expr = node.children[1];
+                }
                 break;
             case "CONSTANT":
-                tree.value = tree[tree.name].value;
-                tree.nodetype = "int";
+                node.type = "int";
+                node.value = node.value;
                 break;
             case "IDENTIFIER":
-                temp = lookup(tree, tree["IDENTIFIER"].name, typeTable);
+                temp = typeTable.lookup(node.identifier, scope);
                 if (temp) {
-                    tree.scope = temp.scope;
-                    tree.symbol = temp;
-                    tree.identifier = tree["IDENTIFIER"].name;
-                    tree.isGlobal = temp.scope === "global";
-                    if (temp.isParam) tree.isParam = true;
-                    if (temp.type) tree.nodetype = temp.isArray ? "array" : temp.type;
-                    if (temp.isArray) tree.isArray = true;
-                    if (temp.isIndex) tree.isIndex = true;
-                    if (temp.isStatic) tree.isStatic = true;
-                } else {
-                    tree.nodetype = "undefined";
+                    node.symbol = temp;
+                    node.isParam = node.symbol.isParam;
+                    node.isArray = node.symbol.isArray;
+                    if (node.isArray) node.type = "array"
+                    else node.type = "int";
                 }
                 break;
             case "COMPOUND_STMT":
-                if (parent && parent.name == "FUNC_DECL") {
-                    tree.isFuncCompound = true;
-                }
-
-                tree.local_decl = tree[tree.name].children[0]
-                tree.stmt_list = tree[tree.name].children[1]
-
+                node.isFuncCompound = (parent.name == "FUNC_DECL");
+                node.local_decl = node.children[0];
+                node.stmt_list = node.children[1];
                 break;
             case "CALL":
-                temp = lookup(
-                    tree,
-                    tree[tree.name].children[0]["IDENTIFIER"].name,
-                    typeTable
-                );
+                identifier = node.children[0].identifier;
+                temp = typeTable.lookup(identifier, scope);
                 if (temp && temp.kind === "function") {
-                    tree.identifier = tree[tree.name].children[0]["IDENTIFIER"].name;
-                    tree.nodetype = temp.type;
-                } else {
-                    tree.nodetype = undefined;
+                    node.symbol = temp;
+                    node.args_list = node.children[1];
+                    node.type = temp.type;
                 }
-
-                tree.args_list = tree[tree.name].children[1];
-
                 break;
             case "SELECT_STMT":
-                tree.expr = tree[tree.name].children[0]
-                tree.if_stmt = tree[tree.name].children[1]
-                tree.else_stmt = tree[tree.name].children[2]
+                node.expr = node.children[0];
+                node.if_stmt = node.children[1];
+                node.else_stmt = node.children[2];
                 break;
             case "ITERATION_STMT":
-                tree.while_expr = tree[tree.name].children[0]
-                tree.compound_stmt = tree[tree.name].children[1];
+                node.while_expr = node.children[0];
+                node.compound_stmt = node.children[1];
                 break;
             case "RETURN_STMT":
-                tree.ret_expr = tree[tree.name].children[0];
+                node.ret_expr = node.children[0];
                 break;
             case "ASSIGN":
-                tree.assign_var = tree[tree.name].children[0]
-                tree.assign_expr = tree[tree.name].children[1];
+                node.assign_var = node.children[0];
+                node.assign_expr = node.children[1];
                 break;
-
+            case "*":
+            case "/":
+            case "+":
+            case "-":
+                node.type = "int";
+                node.left = node.children[0];
+                node.right = node.children[1];
+                break;
+            case "<=":
+            case "<":
+            case ">=":
+            case ">":
+            case "==":
+            case "!=":
+                node.left = node.children[0];
+                node.right = node.children[1];
+                node.type = "bool";
+                break;
         }
 
-        if (tree[tree.name].children.length > 0) {
-            for (const child of tree[tree.name].children) {
-                treeDecoration(child, tree, scope);
-            }
-        }
+        for (let i = 0; i < node.children.length; i++)
+            decorate(node.children[i], node, scope);
 
-        if (/\*|\+|\-|\/|<=|<|>|>=|==|!=/.test(tree.name)) {
-            switch (tree.name) {
-                case "*":
-                case "+":
-                case "-":
-                case "/":
-                    tree.nodetype = "int";
-                    break;
-                default:
-                    tree.nodetype = "bool";
-                    break;
-            }
+        if (node.name === "FUNC_DECL") scope = "global";
 
-            tree.term = tree[tree.name].children[0]
-            tree.factor = tree[tree.name].children[1]
 
-        } else if (tree.name == "ASSIGN") {
-            tree.nodetype = tree[tree.name].children[0].nodetype;
-        }
-
-        if (tree.name === "FUNC_DECL") {
-            scope = "global";
-        }
-
-        tree = tree.sibling;
+        node = node.sibling;
     }
 }
 
-function semanticAnalysis(node, par, scope = "global", errors, showError) {
-    let tree, parent;
-    tree = node;
-    parent = par ? par : undefined;
+function Analyzer() {
+    this.errors = 0;
+    this.returnFound = false;
+    this.symbolTable = new SymbolTable();
 
-    while (tree) {
-        let tmp, type, func;
-        const lineno = tree.lineno;
+    this.semanticAnalysis = function (node, scope = "global") {
+        while (node) {
+            let type, identifier, temp, temp2, lineno = node.lineno;
+            switch (node.name) {
+                case "VAR_DECL":
+                    type = node.children[0].type;
+                    identifier = node.children[1].identifier;
+                    temp = this.symbolTable.find(identifier, scope)
 
-        switch (tree.name) {
-            case "VAR_DECL":
-                type = tree[tree.name].children[0]["TYPE"].type;
-                identifier = tree[tree.name].children[1]["IDENTIFIER"].name;
-                tree[tree.name].children[1].nodetype = type;
-                if (
-                    symbTable.hasOwnProperty(scope) &&
-                    !symbTable[scope].hasOwnProperty(identifier)
-                ) {
-                    symbTable[scope][identifier] = {
-                        identifier,
-                        type,
-                        kind: "variable",
-                        isArray: false,
-                        lineno,
-                        scope,
-                    };
-                } else {
-                    errors++;
-                    showError(
-                        identifier,
-                        lineno,
-                        `Variable ${identifier} has already been declared in the present scope at line ${symbTable[scope][identifier].lineno
-                        } (line ${lineno + 1})`,
-                        true
-                    );
-                }
-                break;
-            case "ARR_DECL":
-                type = tree[tree.name].children[0]["TYPE"].type;
-                identifier = tree[tree.name].children[1]["IDENTIFIER"].name;
-                const length = tree[tree.name].children[2]["CONSTANT"].value;
-
-                if (
-                    symbTable.hasOwnProperty(scope) &&
-                    !symbTable[scope].hasOwnProperty(identifier)
-                ) {
-                    symbTable[scope][identifier] = {
-                        identifier,
-                        type,
-                        kind: "variable",
-                        lineno,
-                        length,
-                        scope,
-                        isArray: true,
-                    };
-                } else {
-                    errors++;
-                    showError(
-                        identifier,
-                        lineno,
-                        `Variable ${identifier} has already been declared in the present scope at line ${symbTable[scope][identifier].lineno
-                        } (line ${lineno + 1})`,
-                        true
-                    );
-                }
-                break;
-            case "PARAM_VAR":
-                type = tree[tree.name].children[0]["TYPE"].type;
-                identifier = tree[tree.name].children[1]["IDENTIFIER"].name;
-                if (
-                    symbTable.hasOwnProperty(scope) &&
-                    !symbTable[scope].hasOwnProperty(identifier)
-                ) {
-                    symbTable[scope][identifier] = {
-                        identifier,
-                        type,
-                        kind: "variable",
-                        lineno,
-                        scope,
-                        isArray: false,
-                    };
-                    tree.nodetype = tree[tree.name].children[0]["TYPE"].type;
-                } else {
-                    errors++;
-                    showError(
-                        identifier,
-                        lineno,
-                        `'${identifier}' has already been declared as a parameter of function ${scope} (line ${lineno + 1
-                        })`,
-                        true
-                    );
-                }
-                break;
-            case "PARAM_ARR":
-                type = tree[tree.name].children[0]["TYPE"].type;
-                identifier = tree[tree.name].children[1]["IDENTIFIER"].name;
-                tree[tree.name].children[1].nodetype = type;
-                if (
-                    symbTable.hasOwnProperty(scope) &&
-                    !symbTable[scope].hasOwnProperty(identifier)
-                ) {
-                    symbTable[scope][identifier] = {
-                        identifier,
-                        type,
-                        kind: "variable",
-                        lineno,
-                        scope,
-                        isArray: true,
-                    };
-
-                    tree.nodetype = "array";
-                } else {
-                    errors++;
-                    showError(
-                        identifier,
-                        lineno,
-                        `'${identifier}' has already been declared as a parameter of function ${scope} (line ${lineno + 1
-                        })`,
-                        true
-                    );
-                }
-                break;
-            case "ARR_VAR":
-                tree[tree.name].children[1].isIndex = true;
-                identifier = lookup(
-                    tree,
-                    tree[tree.name].children[0]["IDENTIFIER"].name,
-                    symbTable
-                );
-
-                tree.nodetype = identifier?.type;
-                type = tree[tree.name].children[1].nodetype;
-
-                if (type !== "int") {
-                    errors++;
-                    showError(
-                        "[",
-                        lineno,
-                        `Array indexes must be integers (line ${lineno + 1})`,
-                        true
-                    );
-                }
-                break;
-            case "FUNC_DECL":
-                identifier = tree[tree.name].name;
-                type = tree[tree.name].children[0]["TYPE"].type;
-                if (!symbTable.hasOwnProperty(identifier)) {
-                    symbTable[identifier] = {};
-                    symbTable["global"][identifier] = {
-                        identifier,
-                        type,
-                        kind: "function",
-                        lineno,
-                        scope,
-                        siblings: findSiblings(tree[tree.name].children[1]),
-                    };
-                } else {
-                    errors++;
-                    showError(
-                        identifier,
-                        lineno,
-                        `Function '${identifier}' already declared at line ${symbTable[scope][identifier].lineno}`,
-                        true
-                    );
-                }
-
-                scope = identifier;
-                break;
-            case "SELECT_STMT":
-                type = tree[tree.name].children[0].nodetype;
-                if (type != "bool") {
-                    errors++;
-                    showError(
-                        identifier,
-                        lineno,
-                        `Expecting boolean test condition in if statement but got type ${type} (line ${lineno + 1
-                        })`,
-                        true
-                    );
-                }
-                break;
-            case "ITERATION_STMT":
-                type = tree[tree.name].children[0].nodetype;
-                if (type != "bool") {
-                    errors++;
-                    showError(
-                        "(",
-                        lineno,
-                        `Expecting boolean test condition in while statement but got type ${type} (line ${lineno + 1
-                        })`,
-                        true
-                    );
-                }
-                break;
-            case "RETURN_STMT":
-                return_found = true;
-                type = tree[tree.name].children[0].nodetype;
-                if (scope == "global") {
-                    errors++;
-                    showError(
-                        "return",
-                        lineno,
-                        `Cannot return from global scope (line ${lineno + 1})`,
-                        true
-                    );
-                } else {
-                    type2 = symbTable["global"][scope].type;
-                    if (type2 === "void") {
-                        errors++;
-                        showError(
-                            "return",
+                    if (temp) {
+                        this.errors++;
+                        this.showError(
+                            identifier,
                             lineno,
-                            `Cannot return from void function ${scope} (line ${lineno + 1})`,
+                            `Variable ${identifier} has already been declared in the present scope at line ${temp.lineno} (line ${lineno + 1})`,
                             true
                         );
-                    } else if (type !== type2) {
-                        errors++;
-                        showError(
-                            "return",
+                    } else {
+                        node.symbol2 = this.symbolTable.insert(identifier, { type, kind: 'variable', size: 1 }, scope)
+                    }
+                    break;
+                case "ARR_DECL":
+                    type = node.children[0].type;
+                    identifier = node.children[1].identifier;
+                    size = node.children[2].value;
+
+                    temp = this.symbolTable.find(identifier, scope)
+
+                    if (temp) {
+                        this.errors++;
+                        this.showError(
+                            identifier,
                             lineno,
-                            `Function ${scope} was expecting to return type ${type2}, but return was of type ${type} (line ${lineno + 1
+                            `Variable ${identifier} (array) has already been declared in the present scope at line ${temp.lineno
+                            } (line ${lineno + 1})`,
+                            true
+                        );
+                    } else {
+                        node.symbol2 = this.symbolTable.insert(identifier, { type, kind: "variable", isArray: true, size }, scope)
+                    }
+                    break;
+                case "FUNC_DECL":
+                    identifier = node.identifier;
+                    type = node.children[0].type;
+                    let parameters = findSiblings(node.children[1]);
+
+                    temp = this.symbolTable.lookup(identifier, "global")
+
+                    if (temp) {
+                        this.errors++;
+                        this.showError(
+                            identifier,
+                            lineno,
+                            `Function '${identifier}' already declared at line ${temp.lineno}`,
+                            true
+                        );
+                    } else {
+                        node.symbol2 = this.symbolTable.insert(identifier, { type, kind: "function", noParameters: parameters.length, parameters }, "global", true);
+                    }
+
+                    scope = identifier;
+                    break;
+                case "PARAM_VAR":
+                    type = node.children[0].type;
+                    identifier = node.children[1].identifier;
+
+                    temp = this.symbolTable.find(identifier, scope)
+
+                    if (temp) {
+                        this.errors++;
+                        this.showError(
+                            identifier,
+                            lineno,
+                            `'${identifier}' has already been declared as a parameter of function ${scope} (line ${lineno + 1
                             })`,
                             true
                         );
                     } else {
-                        typeTable["global"][scope].haveReturn = true;
+                        node.symbol2 = this.symbolTable.insert(identifier, { type, kind: "variable", isParam: true }, scope)
                     }
-                }
-                break;
-            case "IDENTIFIER":
-                temp = lookup(tree, tree["IDENTIFIER"].name, symbTable);
-                if (temp) {
-                    if (temp.type) tree.nodetype = temp.isArray ? "array" : temp.type;
-                    if (temp.isArray) tree.isArray = true;
-                    if (temp.isIndex) tree.isIndex = true;
-                    if (temp.isStatic) tree.isStatic = true;
-                } else {
-                    errors++;
-                    showError(
-                        tree["IDENTIFIER"].name,
-                        lineno,
-                        `Symbol ${tree["IDENTIFIER"].name} is not defined (line ${lineno + 1
-                        })`,
-                        true
-                    );
-                }
-                break;
-            case "ASSIGN":
-                // console.log(tree[tree.name].children[0].name)
-                // if (tree[tree.name].children[0].name === "ARR_VAR") {
-                // temp = tree[tree.name].children[1];
-                // console.log(temp)
-                // }
-                type = tree[tree.name].children[0].nodetype;
-                type2 = tree[tree.name].children[1].nodetype;
-                if (type && type2 && type != type2) {
-                    errors++;
-                    showError(
-                        "=",
-                        lineno,
-                        `Operands must be of the same type (line ${lineno + 1})`,
-                        true
-                    );
-                }
-                break;
-            case "+":
-            case "*":
-            case "-":
-            case "/":
-                type = tree[tree.name].children[0].nodetype;
-                type2 = tree[tree.name].children[1].nodetype;
-                if (type && type2 && type != type2) {
-                    errors++;
-                    showError(
-                        tree.name,
-                        lineno,
-                        `Operands must be of the same type (line ${lineno + 1
-                        }), but operands are of types ${type} and ${type2}`,
-                        true
-                    );
-                }
-                break;
-            case "CALL":
-                identifier = tree[tree.name].children[0]["IDENTIFIER"].name;
-                temp = lookup(
-                    tree,
-                    tree[tree.name].children[0]["IDENTIFIER"].name,
-                    symbTable
-                );
-                if (!temp) {
-                    errors++;
-                    showError(
-                        tree.name,
-                        lineno,
-                        `Function with name ${identifier} is not defined (line ${lineno})`,
-                        true
-                    );
-                } else {
-                    if (temp.kind != "function") {
-                        errors++;
-                        showError(
-                            tree.name,
+
+                    break;
+                case "PARAM_ARR":
+                    type = node.children[0].type;
+                    identifier = node.children[1].identifier;
+
+                    temp = this.symbolTable.find(identifier, scope)
+
+                    if (temp) {
+                        this.errors++;
+                        this.showError(
+                            identifier,
+                            lineno,
+                            `'${identifier}' has already been declared as a parameter of function ${scope} (line ${lineno + 1
+                            })`,
+                            true
+                        );
+                    } else {
+                        node.symbol2 = this.symbolTable.insert(identifier, { type, kind: "variable", isParam: true, isArray: true }, scope)
+                    }
+
+                    break;
+                case "ARR_VAR":
+                    temp = node.children[1];
+                    if (temp.type !== "int") {
+                        this.errors++;
+                        this.showError(
+                            "[",
+                            lineno,
+                            `Array indexes must be integers (line ${lineno + 1})`,
+                            true
+                        );
+                    }
+                    break;
+                case "IDENTIFIER":
+                    temp = this.symbolTable.lookup(node.identifier, scope);
+                    if (!temp) {
+                        this.errors++;
+                        this.showError(
+                            node.identifier,
+                            lineno,
+                            `${node.identifier} is not defined (line ${lineno + 1
+                            })`,
+                            true
+                        );
+                    }
+                    break;
+                case "CALL":
+                    identifier = node.children[0].identifier;
+                    temp = this.symbolTable.lookup(identifier, scope);
+                    if (!temp) {
+                        this.errors++;
+                        this.showError(
+                            node.name,
+                            lineno,
+                            `Function with name ${identifier} is not defined (line ${lineno})`,
+                            true
+                        );
+                    } else if (temp.kind !== "function") {
+                        this.errors++;
+                        this.showError(
+                            node.name,
                             lineno,
                             `Invalid function call, ${identifier} is not a function (line ${lineno})`,
                             true
                         );
                     } else {
-                        // findSiblings(tree[tree.name].children[0])
-                        const parameters = symbTable["global"][identifier].siblings;
-                        const bparameters = findSiblings(tree[tree.name].children[1]);
+                        // console.log(temp.);
+                        const parameters = temp.parameters,
+                            bparameters = findSiblings(node.children[1]);
 
-                        // console.log(bp       arameters);
                         if (parameters.length > bparameters.length) {
-                            errors++;
-                            showError(
-                                tree.name,
+                            this.errors++;
+                            this.showError(
+                                identifier,
                                 lineno,
                                 `Too few arguments to function call, expected ${parameters.length}, have ${bparameters.length} (line ${lineno})`,
                                 true
                             );
                         } else if (parameters.length < bparameters.length) {
-                            errors++;
-                            showError(
-                                tree.name,
+                            this.errors++;
+                            this.showError(
+                                identifier,
                                 lineno,
                                 `Too much arguments to function call, expected ${parameters.length}, have ${bparameters.length} (line ${lineno})`,
                                 true
@@ -608,8 +309,8 @@ function semanticAnalysis(node, par, scope = "global", errors, showError) {
                         } else {
                             for (let i = 0; i < parameters.length; i++) {
                                 if (parameters[i] != bparameters[i]) {
-                                    errors++;
-                                    showError(
+                                    this.errors++;
+                                    this.showError(
                                         identifier,
                                         lineno,
                                         `Expecting ${parameters[i]} in parameter ${i + 1
@@ -621,101 +322,149 @@ function semanticAnalysis(node, par, scope = "global", errors, showError) {
                             }
                         }
                     }
-                }
-                break;
-            case "==":
-            case "!=":
-                type = tree[tree.name].children[0].nodetype;
-                type2 = tree[tree.name].children[1].nodetype;
-                if (type && type2 && type != type2) {
-                    errors++;
-                    showError(
-                        tree.name,
-                        lineno,
-                        `Operands must be of the same type (line ${lineno})`,
-                        true
-                    );
-                }
-                break;
-            case ">=":
-            case ">":
-            case "<=":
-            case "<":
-                type = tree[tree.name].children[0].nodetype;
-                type2 = tree[tree.name].children[1].nodetype;
-                if (type && type2 && type != type2) {
-                    errors++;
-                    showError(
-                        "",
-                        lineno,
-                        `Operands must be of the same type (line ${lineno})`,
-                        true
-                    );
-                } else if (type === "array" || type2 === "array") {
-                    errors++;
-                    showError(
-                        "",
-                        lineno,
-                        `Operands cannot be arrays (line ${lineno})`,
-                        true
-                    );
-                }
-                break;
-        }
-
-        if (tree[tree.name].children.length > 0) {
-            for (let i = 0; i < tree[tree.name].children.length; i++) {
-                semanticAnalysis(tree[tree.name].children[i], tree, scope, errors, showError);
+                    break;
+                case "SELECT_STMT":
+                    type = node.children[0].type;
+                    if (type != "bool") {
+                        this.errors++;
+                        this.showError(
+                            identifier,
+                            lineno,
+                            `Expecting boolean test condition in if statement but got type ${type} (line ${lineno + 1
+                            })`,
+                            true
+                        );
+                    }
+                case "ITERATION_STMT":
+                    type = node.children[0].type;
+                    if (type != "bool") {
+                        this.errors++;
+                        this.showError(
+                            "(",
+                            lineno,
+                            `Expecting boolean test condition in while statement but got type ${type} (line ${lineno + 1
+                            })`,
+                            true
+                        );
+                    }
+                    break;
+                case "RETURN_STMT":
+                    this.returnFound = true;
+                    type = node.children[0].type;
+                    temp = this.symbolTable.lookup(scope, "global");
+                    if (temp.type === "void") {
+                        this.errors++;
+                        this.showError(
+                            "return",
+                            lineno,
+                            `Cannot return from void function ${scope} (line ${lineno + 1})`,
+                            true
+                        );
+                    } else if (type != temp.type) {
+                        this.errors++;
+                        this.showError(
+                            "return",
+                            lineno,
+                            `Function ${scope} was expecting to return type ${temp.symbol2.type}, but return was of type ${type} (line ${lineno + 1
+                            })`,
+                            true
+                        );
+                    }
+                    break;
+                case "ASSIGN":
+                    temp = node.children[0].type;
+                    temp2 = node.children[1].type;
+                    if (temp != temp2) {
+                        this.errors++;
+                        this.showError(
+                            "=",
+                            lineno,
+                            `Operands must be of the same type (line ${lineno + 1})`,
+                            true
+                        );
+                    }
+                    break;
+                case "*":
+                case "/":
+                case "+":
+                case "-":
+                case "<=":
+                case "<":
+                case ">=":
+                case ">":
+                case "==":
+                case "!=":
+                    temp = node.left.type;
+                    temp2 = node.right.type;
+                    if (temp != temp2) {
+                        this.errors++;
+                        this.showError(
+                            node.name,
+                            lineno,
+                            `Operands must be of the same type (line ${lineno + 1})`,
+                            true
+                        );
+                    } else if (temp === "array" && temp2 === "array") {
+                        this.errors++;
+                        this.showError(
+                            node.name,
+                            lineno,
+                            `Operands cannot be arrays (line ${lineno})`,
+                            true
+                        );
+                    }
+                    break;
             }
-        }
 
-        if (
-            (tree.name === "COMPOUND_STMT" && !tree.isFuncCompound) ||
-            tree.name === "FUNC_DECL"
-        ) {
-            // new scope
-            scope = "global";
-        }
+            for (let i = 0; i < node.children.length; i++)
+                this.semanticAnalysis(node.children[i], scope)
 
-        if (tree.name === "FUNC_DECL" && lineno > -1) {
-            // console.log(tree[tree.name].children)
             if (
-                symbTable["global"][tree[tree.name].name].type != "void" &&
-                !return_found
+                (node.name === "COMPOUND_STMT" && !node.isFuncCompound) ||
+                node.name === "FUNC_DECL"
             ) {
-                errors++;
-                showError(
-                    "",
-                    lineno,
-                    `Expecting to return type ${symbTable["global"][tree[tree.name].name].type
-                    }, but function ${tree[tree.name].name
-                    } has no return statement (line ${lineno})`,
-                    true
-                );
+                // new scope
+                scope = "global";
             }
+
+            if (node.name === "FUNC_DECL") {
+                if (!node.isNative && node.symbol2.type !== "void" && !this.returnFound) {
+                    this.errors++;
+                    this.showError(
+                        "",
+                        lineno,
+                        `Expecting to return type ${node.symbol2.type}, but function ${node.name} has no return statement (line ${lineno})`,
+                        true
+                    );
+                }
+                this.returnFound = false;
+            }
+
+            node = node.sibling;
         }
-        tree_type_str = tree.nodetype;
-        tree = tree.sibling;
+
+        if (this.symbolTable.hasOwnProperty("main")) {
+            this.errors++;
+            this.showError(
+                "",
+                lineno,
+                `Missing main function`,
+                true
+            )
+        }
     }
-
-    return errors;
-}
-
-
-function Analyzer() {
-    this.treeDecoration = treeDecoration;
-    this.semanticAnalysis = semanticAnalysis;
 
     this.performAnalysis = function (abstractTree) {
-        // Adiciona no começo da árvore abstrata as funções de IO
-        const input = io({ ...abstractTree["Program"].children[0] });
-        abstractTree["Program"].children[0] = input;
+        const input = io({ ...abstractTree.children[0] });
+        abstractTree.children[0] = input;
 
-        this.treeDecoration(abstractTree);
-        const errors = this.semanticAnalysis(abstractTree, undefined, "global", 0, this.showError);
+        decorate(abstractTree);
+        this.semanticAnalysis(abstractTree, undefined, "global");
 
-        return [abstractTree["Program"].children[0], errors];
+        return [abstractTree.children[0], this.errors];
     }
+
+
 }
 
-module.exports = Analyzer
+module.exports = Analyzer;

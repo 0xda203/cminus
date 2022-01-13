@@ -24,15 +24,13 @@ function Compiler(options) {
 
         const [parseTree, errors] = this.analyzer.performAnalysis(abstractSyntaxTree);
 
-        let message, generatedCode;
+        let generatedCode;
 
-        if (errors > 0) {
-            message = `Compilation failed with errors.`;
-        } else {
+        if (errors === 0) {
             generatedCode = this.generator.generate(parseTree);
         }
 
-        return [message, generatedCode];
+        return [errors, generatedCode];
     }
 }
 
