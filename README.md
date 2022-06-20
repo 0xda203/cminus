@@ -30,8 +30,5 @@ Para executar o programa em sua máquina, clone o repositório em sua máquina e
 
 ## Autores
 
-Gabriel Rodrigues Santos
-Email: <gabrsn1@usp.br>
-
+Gabriel Rodrigues
 Caio Valverde Colaneri
-Email: <caio.colaneri@usp.br>
